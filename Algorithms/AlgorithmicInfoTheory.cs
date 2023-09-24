@@ -7,43 +7,32 @@ namespace ALG.Algorithms
     {
         public static double CalculateShannonEntropy(string inputString)
         {
-            var frequencyDict = new Dictionary<char, int>();
-            foreach (char c in inputString)
-            {
-                if (frequencyDict.ContainsKey(c))
-                {
-                    frequencyDict[c]++;
-                }
-                else
-                {
-                    frequencyDict[c] = 1;
-                }
-            }
+            if (string.IsNullOrEmpty(inputString)) return 0;
+
+            var frequencyDict = inputString.GroupBy(c => c)
+                                            .ToDictionary(g => g.Key, g => g.Count());
 
             int strLen = inputString.Length;
-            double entropy = 0.0;
-            foreach (var entry in frequencyDict)
-            {
-                double frequency = (double)entry.Value / strLen;
-                entropy -= frequency * (Math.Log(frequency) / Math.Log(2));
-            }
-
-            return entropy;
+            return frequencyDict.Values
+                                .Select(count => (double)count / strLen)
+                                .Sum(p => -p * Math.Log(p, 2));
         }
 
         public static int EstimateKolmogorovComplexity(string inputString)
         {
+            if (string.IsNullOrEmpty(inputString)) return 0;
+
             byte[] inputData = Encoding.UTF8.GetBytes(inputString);
-            MemoryStream outputStream = new MemoryStream();
-
-            using (GZipStream gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
+            using (MemoryStream outputStream = new MemoryStream())
             {
-                gZipStream.Write(inputData, 0, inputData.Length);
+                using (GZipStream gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
+                {
+                    gZipStream.Write(inputData, 0, inputData.Length);
+                }
+                return outputStream.ToArray().Length;
             }
-
-            byte[] compressedData = outputStream.ToArray();
-            return compressedData.Length;
         }
+
 
         public static int CalculateLevenshteinDistance(string s, string t)
         {
@@ -91,8 +80,10 @@ namespace ALG.Algorithms
 
         public static bool IsRandom(string inputString, double threshold = 0.9)
         {
+            if (string.IsNullOrEmpty(inputString)) return false;
+
             double entropy = CalculateShannonEntropy(inputString);
-            double maxEntropy = Math.Log(inputString.Length) / Math.Log(2);
+            double maxEntropy = Math.Log(inputString.Length, 2);
             return (entropy / maxEntropy) > threshold;
         }
 
